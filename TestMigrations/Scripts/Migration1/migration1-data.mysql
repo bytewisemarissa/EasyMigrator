@@ -1,0 +1,5 @@
+﻿INSERT INTO `testtableone`(`value`) VALUES (1);
+INSERT INTO `testtableone`(`value`) VALUES (2);
+INSERT INTO `testtableone`(`value`) VALUES (3);
+INSERT INTO `testtableone`(`value`) VALUES (4);
+INSERT INTO `testtableone`(`value`) VALUES (5);

@@ -1,0 +1,4 @@
+﻿CREATE TABLE `testtableone` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `value` INT NOT NULL,
+  PRIMARY KEY (`id`));

@@ -1,0 +1,17 @@
+﻿{
+  "ApplicationSettings": {
+    "Thing1": "Thing2"
+  },
+  "ConnectionStrings": {
+    "TargetDatabase": "server=127.0.0.1; uid=root; pwd=e34yAS3.14!; database=easymigrationtest"
+  },
+  "Logging": {
+    "IncludeScopes": false,
+    "LogLevel": {
+      "Default": "Trace",
+      "System": "Information",
+      "Microsoft": "None"
+    }
+  }
+}
+

@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Scripts\Migration2\migration2-data.mysql" />
+    <None Remove="Scripts\Migration3\migration3-data.mysql" />
+  </ItemGroup>
+
+  <ItemGroup>
+  	<EmbeddedResource Include="Scripts\Migration1\migration1-data.mysql" />
+    <EmbeddedResource Include="Scripts\Migration1\migration1-schema.mysql" />
+    <EmbeddedResource Include="Scripts\Migration1\migration1-down.mysql" />
+    <EmbeddedResource Include="Scripts\Migration2\migration2-data.mysql" />
+    <EmbeddedResource Include="Scripts\Migration2\migration2-schema.mysql" />
+    <EmbeddedResource Include="Scripts\Migration2\migration2-down.mysql" />
+    <EmbeddedResource Include="Scripts\Migration3\migration3-data.mysql" />
+    <EmbeddedResource Include="Scripts\Migration3\migration3-schema.mysql" />
+    <EmbeddedResource Include="Scripts\Migration3\migration3-down.mysql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.0.0" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="2.0.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EasyMigrator.Abstractions\EasyMigrator.Abstractions.csproj" />
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy /Y &quot;$(TargetPath)&quot; &quot;$(SolutionDir)\EasyMigrator\bin\Debug\netcoreapp2.0\$(TargetFileName)&quot;" />
+  </Target>
+
+</Project>

@@ -1,0 +1,6 @@
+﻿CREATE TABLE `easymigrationlog` (
+  `MigrationId` INT NOT NULL AUTO_INCREMENT,
+  `Serial` INT NOT NULL,
+  `ImplementationNamespace` VARCHAR(256) NOT NULL,
+  `PerformedOn` DATETIME NOT NULL,
+  PRIMARY KEY (`MigrationId`));
