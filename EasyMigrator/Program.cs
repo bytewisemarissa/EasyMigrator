@@ -321,8 +321,6 @@ namespace EasyMigrator
                 application.ShowHelp();
                 return 2;
             });
-            
-            application.Execute(args);
 
             try
             {
