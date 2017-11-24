@@ -92,21 +92,31 @@ namespace EasyMigrator.Utility
 
                         foreach (var script in resourcesToRun)
                         {
-                            _logger.LogDebug($"Running resource stream {script}.");
-
-                            var resourceStream = targetAssembly.GetManifestResourceStream(script);
-
-                            if (resourceStream == null)
+                            try
                             {
-                                throw new NullReferenceException("Could not find the specified file in a resource stream of the migration dll. Did you include it as an embedded resource?");
+                                _logger.LogDebug($"Running resource stream {script}.");
+
+                                var resourceStream = targetAssembly.GetManifestResourceStream(script);
+
+                                if (resourceStream == null)
+                                {
+                                    throw new NullReferenceException(
+                                        $"Could not find the specified file '{script}' in a resource stream of the migration dll. " +
+                                        $"Did you include it as an embedded resource?");
+                                }
+
+                                using (var reader = new StreamReader(resourceStream))
+                                {
+                                    var commandString = reader.ReadToEnd();
+
+                                    command.CommandText = commandString;
+                                    command.ExecuteNonQuery();
+                                }
                             }
-
-                            using (var reader = new StreamReader(resourceStream))
+                            catch
                             {
-                                var commandString = reader.ReadToEnd();
-
-                                command.CommandText = commandString;
-                                command.ExecuteNonQuery();
+                                _logger.LogCritical($"There was a problem running the script '{script}'.");
+                                throw;
                             }
                         }
 
@@ -116,7 +126,8 @@ namespace EasyMigrator.Utility
                     {
                         transaction.Rollback();
                         _logger.LogCritical(
-                            "Database may be in an inconsistant state! Any DDL statements can not be rolled back!");
+                            "Database may be in an inconsistant state! " +
+                            "Any DDL statements can not be rolled back!");
                         throw;
                     }
                     finally
