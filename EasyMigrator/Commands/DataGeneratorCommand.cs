@@ -34,9 +34,26 @@ namespace EasyMigrator.Commands
 
         public void PerformDataGenerationOperation(string generationName)
         {
-            var scriptDataGenActions = _assemblyUtility.GetTypeFromAssembly<IDataGenerator>(_targetAssembly);
-            var programaticDataGenActions =
-                _assemblyUtility.GetTypeFromAssembly<IProgrammaticDataGenerator>(_targetAssembly);
+            List<IDataGenerator> scriptDataGenActions;
+            try
+            {
+                scriptDataGenActions = _assemblyUtility.GetTypeFromAssembly<IDataGenerator>(_targetAssembly);
+            }
+            catch
+            {
+                scriptDataGenActions = new List<IDataGenerator>();
+            }
+
+            List<IProgrammaticDataGenerator> programaticDataGenActions;
+            try
+            {
+                programaticDataGenActions = _assemblyUtility.GetTypeFromAssembly<IProgrammaticDataGenerator>(_targetAssembly);
+            }
+            catch
+            {
+                programaticDataGenActions = new List<IProgrammaticDataGenerator>();
+            }
+            
 
             SanityCheckNaming(scriptDataGenActions, programaticDataGenActions);
 
