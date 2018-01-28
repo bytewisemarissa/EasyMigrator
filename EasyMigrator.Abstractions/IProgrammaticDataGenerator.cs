@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -8,6 +9,6 @@ namespace EasyMigrator.Abstractions
     {
         string Name { get; }
 
-        void GenerationRoutine();
+        void GenerationRoutine(ILogger logger);
     }
 }

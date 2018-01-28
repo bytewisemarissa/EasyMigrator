@@ -8,7 +8,7 @@ namespace TestMigrations
     public class DataGenerator1 : IDataGenerator
     {
         public string Name => "TestGen1";
-        public List<string> DataGenerationScript => new List<string>()
+        public List<string> DataGenerationScripts => new List<string>()
         {
             "TestMigrations.Scripts.Migration1.migration1-data.mysql",
             "TestMigrations.Scripts.Migration2.migration2-data.mysql",

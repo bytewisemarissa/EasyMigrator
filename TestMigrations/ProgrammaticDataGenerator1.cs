@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using EasyMigrator.Abstractions;
+using Microsoft.Extensions.Logging;
 using TestMigrations.Data;
 
 namespace TestMigrations
@@ -16,7 +17,7 @@ namespace TestMigrations
         }
 
         public string Name => "ProgGen1";
-        public void GenerationRoutine()
+        public void GenerationRoutine(ILogger logger)
         {
             _dataContext.TestTableOne.Add(new TestTableOne()
             {

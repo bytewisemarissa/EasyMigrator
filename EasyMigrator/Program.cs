@@ -52,6 +52,11 @@ namespace EasyMigrator
                 "Skip backup warning, I know what I'm doing.",
                 CommandOptionType.NoValue);
 
+            CommandOption connectionStringOption = application.Option(
+                "-cs|--connectionstring",
+                "Sets the name of the connection string for the operation to use.",
+                CommandOptionType.SingleValue);
+
             application.HelpOption("-?|-h|--help");
 
             application.Command("migrate", migrateCommand =>
@@ -87,6 +92,14 @@ namespace EasyMigrator
 
                 migrateCommand.OnExecute(() =>
                 {
+                    if (!connectionStringOption.HasValue())
+                    {
+                        Console.WriteLine("You must choose a connection string name.");
+                        return 2;
+                    }
+
+                    ApplicationOptionManager.ConnectionStringName = connectionStringOption.Value();
+
                     if (!targetAssemblyOption.HasValue())
                     {
                         Console.WriteLine("You must choose an assembly for migrations.");
@@ -124,7 +137,8 @@ namespace EasyMigrator
                     SetupApplication(
                         configurationOption.HasValue() ? configurationOption.Value() : "configuration.json",
                         logLevelOption.HasValue() ? logLevelOption.Value() : "warning",
-                        assembly);
+                        assembly,
+                        connectionStringOption.Value());
                     
                     IMigrationCommand migrationCommand = ServiceProviderManager.ServiceProvider.GetService<IMigrationCommand>();
                     migrationCommand.SetTargetAssembly(assembly);
@@ -202,6 +216,14 @@ namespace EasyMigrator
 
                 schemaCommand.OnExecute(() =>
                 {
+                    if (!connectionStringOption.HasValue())
+                    {
+                        Console.WriteLine("You must choose a connection string name.");
+                        return 2;
+                    }
+
+                    ApplicationOptionManager.ConnectionStringName = connectionStringOption.Value();
+
                     if (!targetAssemblyOption.HasValue())
                     {
                         Console.WriteLine("You must choose an assembly for migrations.");
@@ -237,7 +259,8 @@ namespace EasyMigrator
                     SetupApplication(
                         configurationOption.HasValue() ? configurationOption.Value() : "configuration.json",
                         logLevelOption.HasValue() ? logLevelOption.Value() : "warning",
-                        assembly);
+                        assembly,
+                        connectionStringOption.Value());
 
                     ISchemaCommand command = ServiceProviderManager.ServiceProvider.GetService<ISchemaCommand>();
                     command.SetTargetAssembly(assembly);
@@ -268,10 +291,23 @@ namespace EasyMigrator
                     "Attempts to run the data generation action of this name.",
                     CommandOptionType.SingleValue);
 
+                CommandOption listOption = datagenCommand.Option(
+                    "-l|--list",
+                    "Lists all datagen actions in an assembly.",
+                    CommandOptionType.NoValue);
+
                 datagenCommand.HelpOption("-?|-h|--help");
 
                 datagenCommand.OnExecute(() =>
                 {
+                    if (!connectionStringOption.HasValue())
+                    {
+                        Console.WriteLine("You must choose a connection string name.");
+                        return 2;
+                    }
+
+                    ApplicationOptionManager.ConnectionStringName = connectionStringOption.Value();
+
                     if (!targetAssemblyOption.HasValue())
                     {
                         Console.WriteLine("You must choose an assembly for migrations.");
@@ -291,7 +327,7 @@ namespace EasyMigrator
                         return 2;
                     }
 
-                    if (!nameOption.HasValue())
+                    if (!nameOption.HasValue() && !listOption.HasValue())
                     {
                         datagenCommand.ShowHelp();
                         return 2;
@@ -305,10 +341,17 @@ namespace EasyMigrator
                     SetupApplication(
                         configurationOption.HasValue() ? configurationOption.Value() : "configuration.json",
                         logLevelOption.HasValue() ? logLevelOption.Value() : "warning",
-                        assembly);
+                        assembly,
+                        connectionStringOption.Value());
 
                     IDataGeneratorCommand command = ServiceProviderManager.ServiceProvider.GetService<IDataGeneratorCommand>();
                     command.SetTargetAssembly(assembly);
+
+                    if (listOption.HasValue())
+                    {
+                        command.DisplayDataGenNames();
+                        return 0;
+                    }
 
                     command.PerformDataGenerationOperation(nameOption.Value());
 
@@ -332,7 +375,7 @@ namespace EasyMigrator
             }
         }
 
-        private static void SetupApplication(string configurationName, string logLevel, Assembly targetAssembly)
+        private static void SetupApplication(string configurationName, string logLevel, Assembly targetAssembly, string connectionStringName)
         {
             IConfigurationRoot configuration = SetupConfiguration(configurationName);
 
@@ -366,7 +409,7 @@ namespace EasyMigrator
                     break;
             }
 
-            IServiceProvider diContainer = SetupDependencyInjection(configuration, selectedLogLevel, targetAssembly);
+            IServiceProvider diContainer = SetupDependencyInjection(configuration, selectedLogLevel, targetAssembly, connectionStringName);
 
             ServiceProviderManager.ServiceProvider = diContainer;
         }
@@ -383,7 +426,8 @@ namespace EasyMigrator
         private static IServiceProvider SetupDependencyInjection(
             IConfigurationRoot configuration, 
             LogLevel selectedLogLevel, 
-            Assembly targetAssembly)
+            Assembly targetAssembly,
+            string connectionStringName)
         {
             ServiceCollection collection = new ServiceCollection();
 
@@ -399,7 +443,7 @@ namespace EasyMigrator
             
             collection.AddDbContext<EasyMigratorMySqlContext>(options =>
                 options.UseMySql(
-                    configuration.GetConnectionString("TargetDatabase"))
+                    configuration.GetConnectionString(connectionStringName))
                         .UseLoggerFactory(null));
 
             collection.AddTransient<IDatabaseConnectionFactory, DatabaseConnectionFactory>();
@@ -409,6 +453,7 @@ namespace EasyMigrator
             collection.AddTransient<IMigrationCommand, MigrationCommand>();
             collection.AddTransient<ISchemaCommand, SchemaCommand>();
             collection.AddTransient<IDataGeneratorCommand, DataGeneratorCommand>();
+            collection.AddTransient<IConfigurationRoot>(provider => configuration);
 
             var libraryDiConfig = GetAssemblyDiConfiguration(targetAssembly);
             foreach (var config in libraryDiConfig)

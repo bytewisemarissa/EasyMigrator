@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 using EasyMigrator.Abstractions;
 using EasyMigrator.Interfaces;
 using Microsoft.EntityFrameworkCore.Internal;
@@ -43,7 +44,7 @@ namespace EasyMigrator.Commands
             {
                 scriptDataGenActions = new List<IDataGenerator>();
             }
-
+            
             List<IProgrammaticDataGenerator> programaticDataGenActions;
             try
             {
@@ -54,44 +55,134 @@ namespace EasyMigrator.Commands
                 programaticDataGenActions = new List<IProgrammaticDataGenerator>();
             }
             
-
-            SanityCheckNaming(scriptDataGenActions, programaticDataGenActions);
-
-            var scriptSeach = scriptDataGenActions.SingleOrDefault(a => String.CompareOrdinal(a.Name.ToLower(), generationName.ToLower()) == 0);
-            if (scriptSeach == default(IDataGenerator))
+            List<IDataGeneratorGroup> dataGeneratorGroups;
+            try
             {
-                var programmaticSeach = programaticDataGenActions.SingleOrDefault(a => String.CompareOrdinal(a.Name.ToLower(),generationName.ToLower()) == 0);
-                if (programmaticSeach == default(IProgrammaticDataGenerator))
-                {
-                    throw new ApplicationException($"No datagen action found with the name '{generationName}'.");
-                }
-
-                programmaticSeach.GenerationRoutine();
+                dataGeneratorGroups = _assemblyUtility.GetTypeFromAssembly<IDataGeneratorGroup>(_targetAssembly);
             }
-            else
+            catch
             {
-                _commandUtility.RunEmbeddedResourceList(scriptSeach.DataGenerationScript, _targetAssembly);
+                dataGeneratorGroups = new List<IDataGeneratorGroup>();
+            }
+            
+            SanityCheckNaming(scriptDataGenActions, programaticDataGenActions, dataGeneratorGroups, generationName);
+            
+            var scriptSeach = scriptDataGenActions.SingleOrDefault(sdg =>
+                String.Equals(sdg.Name, generationName, StringComparison.CurrentCultureIgnoreCase));
+            var programmaticSeach = programaticDataGenActions.SingleOrDefault(pdg =>
+                String.Equals(pdg.Name, generationName, StringComparison.CurrentCultureIgnoreCase));
+            var groupSearch = dataGeneratorGroups.SingleOrDefault(dgg =>
+                String.Equals(dgg.Name, generationName, StringComparison.CurrentCultureIgnoreCase));
+            
+            if (scriptSeach != default(IDataGenerator))
+            {
+                _commandUtility.RunEmbeddedResourceList(scriptSeach.DataGenerationScripts, _targetAssembly);
+            }
+            
+            if (programmaticSeach != default(IProgrammaticDataGenerator))
+            {
+                _logger.LogInformation($"Starting generation function, \"{programmaticSeach.Name}\".");
+
+                programmaticSeach.GenerationRoutine(_logger);
+
+                _logger.LogInformation($"Finished generation function, \"{programmaticSeach.Name}\".");
+            }
+            
+            if (groupSearch != default(IDataGeneratorGroup))
+            {
+                foreach (var actionName in groupSearch.DataGenerationActionNames)
+                {
+                    var scriptSeachGroup = scriptDataGenActions.SingleOrDefault(sdg =>
+                        String.Equals(sdg.Name, actionName, StringComparison.CurrentCultureIgnoreCase));
+                    
+                    var programmaticSeachGroup = programaticDataGenActions.SingleOrDefault(pdg =>
+                        String.Equals(pdg.Name, actionName, StringComparison.CurrentCultureIgnoreCase));
+                    
+                    if (scriptSeachGroup == default(IDataGenerator) &&
+                        programmaticSeachGroup == default(IProgrammaticDataGenerator))
+                    {
+                        throw new ApplicationException(
+                            $"The data generator group '{groupSearch.Name}' contains the action name '{actionName}' which can not be found in the targe assembly.");
+                    }
+                    
+                    if (scriptSeachGroup != default(IDataGenerator))
+                    {
+                        _commandUtility.RunEmbeddedResourceList(scriptSeachGroup.DataGenerationScripts, _targetAssembly);
+                    }
+                    
+                    if (programmaticSeachGroup != default(IProgrammaticDataGenerator))
+                    {
+                        _logger.LogInformation($"Starting generation function, \"{programmaticSeachGroup.Name}\".");
+
+                        programmaticSeachGroup.GenerationRoutine(_logger);
+
+                        _logger.LogInformation($"Finished generation function, \"{programmaticSeachGroup.Name}\".");
+                    }
+                }
+            }
+        }
+
+        public void DisplayDataGenNames()
+        {
+            var scriptDataGenActions = _assemblyUtility.GetTypeFromAssembly<IDataGenerator>(_targetAssembly);
+            var programaticDataGenActions = _assemblyUtility.GetTypeFromAssembly<IProgrammaticDataGenerator>(_targetAssembly);
+            var groupActions = _assemblyUtility.GetTypeFromAssembly<IDataGeneratorGroup>(_targetAssembly);
+
+            Console.WriteLine();
+            Console.WriteLine("Script Actions:");
+            foreach (var scriptAction in scriptDataGenActions)
+            {
+                Console.WriteLine(scriptAction.Name);
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("Programmatic Actions:");
+            foreach (var programaticAction in programaticDataGenActions)
+            {
+                Console.WriteLine(programaticAction.Name);
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("Data Generator Group:");
+            foreach (var groupName in groupActions)
+            {
+                Console.WriteLine(groupName.Name);
             }
         }
 
         private void SanityCheckNaming(
             List<IDataGenerator> scriptDataGenActions, 
-            List<IProgrammaticDataGenerator> programaticDataGenActions
-            )
+            List<IProgrammaticDataGenerator> programaticDataGenActions,
+            List<IDataGeneratorGroup> dataGeneratorGroups,
+            string generationName)
         {
-            if (scriptDataGenActions.Count != scriptDataGenActions.Select(a => a.Name).Distinct().Count())
+            if (scriptDataGenActions.Count != scriptDataGenActions.Select(sdg => sdg.Name).Distinct().Count())
             {
                 throw new ApplicationException("There are multiple implmentations of IDataGenerator with the same name value.");
             }
 
-            if (programaticDataGenActions.Count != programaticDataGenActions.Select(a => a.Name).Distinct().Count())
+            if (programaticDataGenActions.Count != programaticDataGenActions.Select(pdg => pdg.Name).Distinct().Count())
             {
                 throw new ApplicationException("There are multiple implmentations of IProgrammaticDataGenerator with the same name value.");
             }
-            
-            if (programaticDataGenActions.Select(a => a.Name).Intersect(scriptDataGenActions.Select(a => a.Name)).Any())
+
+            if (dataGeneratorGroups.Count != dataGeneratorGroups.Select(dgg => dgg.Name).Distinct().Count())
             {
-                throw new ApplicationException("There are implmentations of IDataGenerator and IProgrammaticDataGenerator with the same name value.");
+                throw new ApplicationException("There are multiple implmentations of IDataGeneratorGroup with the same name value.");
+            }
+            
+            if (programaticDataGenActions.Select(pdg => pdg.Name)
+                .Intersect(scriptDataGenActions.Select(sdg => sdg.Name))
+                .Intersect(dataGeneratorGroups.Select(dgg => dgg.Name)).Any())
+            {
+                throw new ApplicationException("There are implmentations of IDataGenerator or IProgrammaticDataGenerator or IDataGeneratorGroup with the same name value.");
+            }
+
+            if (scriptDataGenActions.All(sdg => sdg.Name != generationName) &&
+                programaticDataGenActions.All(pdg => pdg.Name != generationName) &&
+                dataGeneratorGroups.All(dgg => dgg.Name != generationName))
+            {
+                throw new ApplicationException($"No datagen action found with the name '{generationName}'.");
             }
         }
     }

@@ -16,18 +16,15 @@ namespace EasyMigrator.Commands
     {
         private Assembly _targetAssembly;
         private readonly ILogger<MigrationCommand> _logger;
-        private readonly IDatabaseConnectionFactory _connectionFactory;
         private readonly ISqlCommandUtility _sqlCommandUtility;
         private readonly IAssemblyUtility _assemblyUtility;
         
         public SchemaCommand(
             ILogger<MigrationCommand> logger, 
-            IDatabaseConnectionFactory connectionFactory,
             ISqlCommandUtility sqlCommandUtility,
             IAssemblyUtility assemblyUtility)
         {
             _logger = logger;
-            _connectionFactory = connectionFactory;
             _sqlCommandUtility = sqlCommandUtility;
             _assemblyUtility = assemblyUtility;
         }

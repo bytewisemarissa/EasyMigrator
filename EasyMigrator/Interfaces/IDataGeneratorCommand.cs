@@ -6,5 +6,6 @@ namespace EasyMigrator.Interfaces
     {
         void SetTargetAssembly(Assembly targetAssembly);
         void PerformDataGenerationOperation(string generationName);
+        void DisplayDataGenNames();
     }
 }

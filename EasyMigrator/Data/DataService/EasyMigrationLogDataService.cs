@@ -12,18 +12,15 @@ namespace EasyMigrator.Data.DataService
     public class EasyMigrationLogDataService : IEasyMigrationLogDataService
     {
         private readonly ILogger _logger;
-        private readonly IDatabaseConnectionFactory _connectionFactory;
         private readonly EasyMigratorMySqlContext _databaseContext;
 
 
         public EasyMigrationLogDataService(
             ILogger<EasyMigrationLogDataService> logger,
-            IDatabaseConnectionFactory connectionFactory,
             EasyMigratorMySqlContext databaseContext
             )
         {
             _logger = logger;
-            _connectionFactory = connectionFactory;
             _databaseContext = databaseContext;
         }
 
