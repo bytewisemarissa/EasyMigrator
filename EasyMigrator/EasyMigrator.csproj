@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
@@ -20,8 +19,15 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <!-- By default, *.cs files will be automatically included as compile items,
+    but *.sql files will be automatically included as None items.  This disables that behavior. -->
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+  </PropertyGroup>
+  <!-- Automatically include all *.sql files as embedded resources
+  for use with Migration.Execute.EmbeddedScript(string EmbeddedSqlScriptName) -->
   <ItemGroup>
-    <EmbeddedResource Include="Data\Script\easymigrationlog.mysql" />
+    <EmbeddedResource Include="**\*.mysql" />
   </ItemGroup>
 
   <ItemGroup>
